@@ -14,10 +14,13 @@ app.use(express.json());
 app.get('/api/health', async (req, res) => {
   try {
     await prisma.$queryRawUnsafe('SELECT 1');
+    const userCount = await prisma.user.count();
     res.status(200).json({
       status: 'ok',
       service: 'taskflow-backend',
-      database: 'connected'
+      database: 'connected',
+      userTable: 'ready',
+      userCount
     });
   } catch (error: any) {
     res.status(503).json({
