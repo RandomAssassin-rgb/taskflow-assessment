@@ -24,7 +24,14 @@ export const Register: React.FC = () => {
       login(res.data.token);
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Registration failed');
+      console.error('Registration error:', err);
+      if (err.response) {
+        setError(err.response.data?.message || `Registration failed (HTTP ${err.response.status})`);
+      } else if (err.request) {
+        setError(`Cannot reach the backend. API: ${apiClient.defaults.baseURL}`);
+      } else {
+        setError(err.message || 'Registration failed');
+      }
     } finally {
       setLoading(false);
     }
