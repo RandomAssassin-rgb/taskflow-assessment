@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Trash2, Circle, Edit3, X, Save } from 'lucide-react';
+import { CheckCircle2, Trash2, Circle, Edit3, X, Save } from 'lucide-react';
 
 export const ProjectDetail: React.FC = () => {
   const { id } = useParams();
@@ -17,6 +17,47 @@ export const ProjectDetail: React.FC = () => {
   const [isEditingProject, setIsEditingProject] = useState(false);
   const [editProjectName, setEditProjectName] = useState('');
   const [editProjectDescription, setEditProjectDescription] = useState('');
+  
+  const [pendingDelete, setPendingDelete] = useState<{id: string, name: string, timeoutId: any} | null>(null);
+  const [pendingProjectDelete, setPendingProjectDelete] = useState<{timeoutId: any, navTimeoutId: any} | null>(null);
+
+  const handleDeleteTask = (taskId: string, taskName: string) => {
+    if (pendingDelete) {
+      clearTimeout(pendingDelete.timeoutId);
+      deleteMutation.mutate(pendingDelete.id);
+    }
+    const timeoutId = setTimeout(() => {
+      deleteMutation.mutate(taskId);
+      setPendingDelete(prev => prev?.id === taskId ? null : prev);
+    }, 5000);
+    setPendingDelete({ id: taskId, name: taskName, timeoutId });
+  };
+
+  const handleUndoTask = () => {
+    if (pendingDelete) {
+      clearTimeout(pendingDelete.timeoutId);
+      setPendingDelete(null);
+    }
+  };
+
+  const handleDeleteProject = () => {
+    if (pendingProjectDelete) return; // already pending
+    const timeoutId = setTimeout(() => {
+      deleteProjectMutation.mutate();
+    }, 5000);
+    const navTimeoutId = setTimeout(() => {
+      navigate('/projects');
+    }, 5100);
+    setPendingProjectDelete({ timeoutId, navTimeoutId });
+  };
+
+  const handleUndoProject = () => {
+    if (pendingProjectDelete) {
+      clearTimeout(pendingProjectDelete.timeoutId);
+      clearTimeout(pendingProjectDelete.navTimeoutId);
+      setPendingProjectDelete(null);
+    }
+  };
   
   const { data, isLoading } = useQuery({
     queryKey: ['project', id],
@@ -146,7 +187,7 @@ export const ProjectDetail: React.FC = () => {
                 className="btn btn-outline" 
                 onClick={() => {
                   if(window.confirm('Are you sure you want to delete this project and all its tasks?')) {
-                    deleteProjectMutation.mutate();
+                    handleDeleteProject();
                   }
                 }}
                 style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
@@ -204,7 +245,7 @@ export const ProjectDetail: React.FC = () => {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <AnimatePresence>
-          {data.tasks?.map((task: any) => (
+          {data.tasks?.filter((t: any) => t.id !== pendingDelete?.id).map((task: any) => (
             <motion.div 
               key={task.id}
               initial={{ opacity: 0, scale: 0.95 }}
@@ -227,7 +268,7 @@ export const ProjectDetail: React.FC = () => {
                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem', display: 'flex' }}
                 >
                   {task.status === 'COMPLETED' ? (
-                    <Check size={24} color="var(--color-success)" />
+                    <CheckCircle2 size={24} color="var(--color-success)" />
                   ) : (
                     <Circle size={24} color="var(--color-border)" />
                   )}
@@ -248,7 +289,7 @@ export const ProjectDetail: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <span className="badge">{task.status}</span>
                 <button 
-                  onClick={(e) => { e.preventDefault(); deleteMutation.mutate(task.id); }}
+                  onClick={(e) => { e.preventDefault(); handleDeleteTask(task.id, task.name); }}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem', color: 'var(--color-danger)' }}
                 >
                   <Trash2 size={20} />
@@ -259,6 +300,20 @@ export const ProjectDetail: React.FC = () => {
         </AnimatePresence>
         {data.tasks?.length === 0 && !isCreating && <p style={{ color: 'var(--color-ink-secondary)' }}>No tasks in this project yet.</p>}
       </div>
+
+      <AnimatePresence>
+        {(pendingDelete || pendingProjectDelete) && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            style={{ position: 'fixed', bottom: 24, right: 24, background: 'var(--color-ink-primary)', color: 'var(--color-surface)', padding: '12px 24px', borderRadius: 8, display: 'flex', gap: 16, alignItems: 'center', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+          >
+            <span>{pendingProjectDelete ? `Deleted project "${data.name}"` : `Deleted "${pendingDelete?.name}"`}</span>
+            <button onClick={pendingProjectDelete ? handleUndoProject : handleUndoTask} style={{ background: 'var(--color-surface)', color: 'var(--color-ink-primary)', border: 'none', borderRadius: 4, padding: '6px 12px', cursor: 'pointer', fontWeight: 600 }}>Undo</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

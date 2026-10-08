@@ -3,13 +3,33 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Trash2, Circle } from 'lucide-react';
+import { CheckCircle2, Trash2, Circle } from 'lucide-react';
 
 export const Projects: React.FC = () => {
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [pendingDelete, setPendingDelete] = useState<{id: string, name: string, timeoutId: any} | null>(null);
+
+  const handleDelete = (id: string, projectName: string) => {
+    if (pendingDelete) {
+      clearTimeout(pendingDelete.timeoutId);
+      deleteMutation.mutate(pendingDelete.id);
+    }
+    const timeoutId = setTimeout(() => {
+      deleteMutation.mutate(id);
+      setPendingDelete(prev => prev?.id === id ? null : prev);
+    }, 5000);
+    setPendingDelete({ id, name: projectName, timeoutId });
+  };
+
+  const handleUndo = () => {
+    if (pendingDelete) {
+      clearTimeout(pendingDelete.timeoutId);
+      setPendingDelete(null);
+    }
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ['projects'],
@@ -91,7 +111,7 @@ export const Projects: React.FC = () => {
       
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
         <AnimatePresence>
-          {data?.map((project: any) => (
+          {data?.filter((p: any) => p.id !== pendingDelete?.id).map((project: any) => (
             <motion.div 
               key={project.id}
               initial={{ opacity: 0, scale: 0.95 }}
@@ -112,7 +132,7 @@ export const Projects: React.FC = () => {
                     style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}
                   >
                     {project.status === 'COMPLETED' ? (
-                      <Check size={24} color="var(--color-success)" />
+                      <CheckCircle2 size={24} color="var(--color-success)" />
                     ) : (
                       <Circle size={24} color="var(--color-border)" />
                     )}
@@ -122,7 +142,7 @@ export const Projects: React.FC = () => {
                   </Link>
                 </div>
                 <button 
-                  onClick={(e) => { e.preventDefault(); deleteMutation.mutate(project.id); }}
+                  onClick={(e) => { e.preventDefault(); handleDelete(project.id, project.name); }}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', color: 'var(--color-danger)' }}
                 >
                   <Trash2 size={18} />
@@ -142,6 +162,20 @@ export const Projects: React.FC = () => {
           <p style={{ color: 'var(--color-ink-secondary)' }}>No projects found. Create one to get started!</p>
         )}
       </div>
+
+      <AnimatePresence>
+        {pendingDelete && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            style={{ position: 'fixed', bottom: 24, right: 24, background: 'var(--color-ink-primary)', color: 'var(--color-surface)', padding: '12px 24px', borderRadius: 8, display: 'flex', gap: 16, alignItems: 'center', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+          >
+            <span>Deleted "{pendingDelete.name}"</span>
+            <button onClick={handleUndo} style={{ background: 'var(--color-surface)', color: 'var(--color-ink-primary)', border: 'none', borderRadius: 4, padding: '6px 12px', cursor: 'pointer', fontWeight: 600 }}>Undo</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

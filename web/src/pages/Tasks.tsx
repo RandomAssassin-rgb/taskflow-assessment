@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Trash2, Circle } from 'lucide-react';
+import { CheckCircle2, Trash2, Circle } from 'lucide-react';
 
 export const Tasks: React.FC = () => {
   const queryClient = useQueryClient();
@@ -12,6 +12,26 @@ export const Tasks: React.FC = () => {
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState('MEDIUM');
   const [project_id, setProjectId] = useState('');
+  const [pendingDelete, setPendingDelete] = useState<{id: string, name: string, timeoutId: any} | null>(null);
+
+  const handleDelete = (id: string, name: string) => {
+    if (pendingDelete) {
+      clearTimeout(pendingDelete.timeoutId);
+      deleteMutation.mutate(pendingDelete.id);
+    }
+    const timeoutId = setTimeout(() => {
+      deleteMutation.mutate(id);
+      setPendingDelete(prev => prev?.id === id ? null : prev);
+    }, 5000);
+    setPendingDelete({ id, name, timeoutId });
+  };
+
+  const handleUndo = () => {
+    if (pendingDelete) {
+      clearTimeout(pendingDelete.timeoutId);
+      setPendingDelete(null);
+    }
+  };
 
   const { data: tasks, isLoading: tasksLoading } = useQuery({
     queryKey: ['tasks'],
@@ -124,7 +144,7 @@ export const Tasks: React.FC = () => {
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <AnimatePresence>
-          {tasks?.map((task: any) => (
+          {tasks?.filter((t: any) => t.id !== pendingDelete?.id).map((task: any) => (
             <motion.div
               key={task.id}
               initial={{ opacity: 0, scale: 0.95 }}
@@ -147,7 +167,7 @@ export const Tasks: React.FC = () => {
                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem', display: 'flex' }}
                 >
                   {task.status === 'COMPLETED' ? (
-                    <Check size={24} color="var(--color-success)" />
+                    <CheckCircle2 size={24} color="var(--color-success)" />
                   ) : (
                     <Circle size={24} color="var(--color-border)" />
                   )}
@@ -174,7 +194,7 @@ export const Tasks: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <span className="badge">{task.status}</span>
                 <button 
-                  onClick={(e) => { e.preventDefault(); deleteMutation.mutate(task.id); }}
+                  onClick={(e) => { e.preventDefault(); handleDelete(task.id, task.name); }}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem', color: 'var(--color-danger)' }}
                 >
                   <Trash2 size={20} />
@@ -185,6 +205,20 @@ export const Tasks: React.FC = () => {
         </AnimatePresence>
         {tasks?.length === 0 && !isCreating && <p style={{ color: 'var(--color-ink-secondary)' }}>No tasks found. Get to work!</p>}
       </div>
+
+      <AnimatePresence>
+        {pendingDelete && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            style={{ position: 'fixed', bottom: 24, right: 24, background: 'var(--color-ink-primary)', color: 'var(--color-surface)', padding: '12px 24px', borderRadius: 8, display: 'flex', gap: 16, alignItems: 'center', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+          >
+            <span>Deleted "{pendingDelete.name}"</span>
+            <button onClick={handleUndo} style={{ background: 'var(--color-surface)', color: 'var(--color-ink-primary)', border: 'none', borderRadius: 4, padding: '6px 12px', cursor: 'pointer', fontWeight: 600 }}>Undo</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
