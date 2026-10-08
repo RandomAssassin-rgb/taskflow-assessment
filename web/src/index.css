@@ -1,0 +1,90 @@
+
+:root {
+  --color-bg: #F4F0E8;
+  --color-surface: #FCFBF7;
+  --color-surface-secondary: #EEEAE1;
+  --color-ink-primary: #171716;
+  --color-ink-secondary: #67655F;
+  --color-ink-muted: #96928A;
+  --color-border: #D8D2C8;
+  
+  --color-accent-primary: #4057D6;
+  --color-accent-hover: #3045B5;
+  --color-accent-danger: #D35F57;
+  
+  --font-sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-ink-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Base UI classes */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 1rem;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background-color: var(--color-accent-primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-accent-hover);
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: var(--color-ink-primary);
+  border: 1px solid var(--color-border);
+}
+
+.btn-outline:hover {
+  background-color: var(--color-surface-secondary);
+}
+
+.input-group {
+  margin-bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.input-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--color-ink-primary);
+}
+
+.input-control {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background-color: var(--color-surface);
+  font-size: 1rem;
+  color: var(--color-ink-primary);
+}
+
+.input-control:focus {
+  outline: none;
+  border-color: var(--color-accent-primary);
+}
