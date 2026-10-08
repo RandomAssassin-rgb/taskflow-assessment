@@ -37,6 +37,15 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'API route not found',
+    method: req.method,
+    path: req.originalUrl
+  });
+});
+
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error(err.stack);
   res.status(500).json({ success: false, message: 'Internal Server Error' });
