@@ -13,7 +13,7 @@ app.use(express.json());
 
 app.get('/api/health', async (req, res) => {
   try {
-    await prisma.$queryRaw\`SELECT 1\`;
+    await prisma.$queryRawUnsafe('SELECT 1');
     res.status(200).json({
       status: 'ok',
       service: 'taskflow-backend',
